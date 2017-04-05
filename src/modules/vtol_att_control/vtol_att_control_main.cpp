@@ -762,11 +762,11 @@ void VtolAttitudeControl::task_main()
 
 			// got data from mc attitude controller
 			if (fds[0].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
+				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in); // Get multicopter attitude controller output
 
-				_vtol_type->update_mc_state();
+				_vtol_type->update_mc_state(); // Copy mc attitude setpoints: _vtol_type->_v_att_sp = _mc_virtual_att_sp (from mc_virtual_att_sp_poll();)
 
-				fill_mc_att_rates_sp();
+				fill_mc_att_rates_sp(); // Copy mc rates setpoints: _v_rates_sp.xx	= _mc_virtual_v_rates_sp.xx (from vehicle_rates_sp_mc_poll();)
 			}
 
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
@@ -776,12 +776,12 @@ void VtolAttitudeControl::task_main()
 
 			// got data from fw attitude controller
 			if (fds[1].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
-				vehicle_manual_poll();
+				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in); // Get fixed-wing attitude controller output
+				vehicle_manual_poll();  // Update _manual_control_sp
 
-				_vtol_type->update_fw_state();
+				_vtol_type->update_fw_state(); // Copy fw attitude setpoints 
 
-				fill_fw_att_rates_sp();
+				fill_fw_att_rates_sp(); // Apply fw rates setpoints to vtol rates setpoints and block TECS if transition is not finished yet
 			}
 
 		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
@@ -793,19 +793,19 @@ void VtolAttitudeControl::task_main()
 			bool got_new_data = false;
 
 			if (fds[0].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
+				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in); // Get multicoper attitude controller output
 				got_new_data = true;
 			}
 
 			if (fds[1].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
+				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in); // Get fixed-wing attitude controller output
 				got_new_data = true;
 			}
 
 			// update transition state if got any new data
 			if (got_new_data) {
 				_vtol_type->update_transition_state();
-				fill_mc_att_rates_sp();
+				fill_mc_att_rates_sp(); // Apply mc rates to vtol rates
 			}
 
 		} else if (_vtol_type->get_mode() == EXTERNAL) {
