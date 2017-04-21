@@ -598,6 +598,7 @@ void Logger::add_default_topics()
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
 	add_topic("sensor_preflight", 50);
 	add_topic("task_stack_info");
+    add_topic("mc_att_ctrl_status");
 
 	/* for estimator replay (need to be at full rate) */
 	add_topic("airspeed");
