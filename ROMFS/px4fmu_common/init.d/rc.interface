@@ -281,6 +281,8 @@ then
 	fi
 fi
 
+# Set minimum value for pusher ESC
+pwm min -d /dev/pwm_output1 -c 3 -p 1180 
 unset PWM_OUT
 unset PWM_RATE
 unset PWM_ACHDIS
