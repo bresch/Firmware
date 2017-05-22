@@ -434,7 +434,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_ts_opt_recovery(nullptr),
-    _diff(0.02f, 0.05f)
+    _diff(0.02f, 0.025f) // FOWA filter (dt, noise amplitude)
 
 
 {
