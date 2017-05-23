@@ -4,16 +4,9 @@
 # @type Standard VTOL
 # @maintainer Mathieu Brsciani <brescianimathieu@gmail.com>
 # @output CAN Quad X
-# @output MAIN1 Aileron 1
-# @output MAIN2 Aileron 2
-# @output MAIN3 Elevator
-# @output MAIN4 Rudder
-# @output MAIN5 Throttle
 # @output AUX1 Aileron 1
 # @output AUX2 Aileron 2
-# @output AUX3 Elevator
-# @output AUX4 Rudder
-# @output AUX5 Throttle
+# @output AUX3 Throttle
 #
 
 sh /etc/init.d/rc.vtol_defaults
@@ -42,13 +35,15 @@ then
     param set MC_PITCHRATE_I 0.05
     param set MC_PITCHRATE_D 0.003
     param set MC_PITCHRATE_FF 0.0
-    param set MC_YAW_P 2.8
-    param set MC_YAW_FF 0.5
+    # Disable yaw control in order to allow the VTOL to align itself with the wind direction
+    param set MC_YAW_P 0
+    # And feed the input command to the yaw rate controller
+    param set MC_YAW_FF 1
     param set MC_YAWRATE_P 0.35
     param set MC_YAWRATE_I 0.1
     param set MC_YAWRATE_D 0.0
     param set MC_YAWRATE_FF 0.0
-    param set MC_YAWRATE_MAX 80
+    param set MC_YAWRATE_MAX 40
     param set MC_YAWRAUTO_MAX 40
 
     param set MPC_Z_VEL_I 0.1
@@ -65,16 +60,15 @@ then
     param set FW_THR_CRUISE 0.6
 fi
 
+# Load CAN mixer for lifting system
 set MIXER_CAN vtol_quad_x
 
-# Using the same mixer on IO and FMU (as an example)
-set MIXER delta
-set PWM_OUT 12345678
-set PWM_MCHDIS 4
 set PWM_RATE p:PWM_RATE
 
+# Load AUX mixer for FW servos and pusher
 set MIXER_AUX vtol_delta
 set PWM_AUX_OUT 123
+# Set proper disarmed value to the pusher ESC (AUX 3)
 set PWM_ACHDIS 3
 
 set MAV_TYPE 22
