@@ -58,6 +58,7 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/FOAWDifferentiator.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/tailsitter_recovery/tailsitter_recovery.h>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -195,7 +196,11 @@ private:
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
     float _raw_diff;
+    float _raw_diff_gyro_lpf;
     float _foaw_diff;
+    float _rates_lpf;
+    float _rates_lpf_prev;
+    float _foaw_diff_gyro_lpf;
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
@@ -291,6 +296,8 @@ private:
 
 
     math::FOAWDifferentiator _diff;
+    math::FOAWDifferentiator _diff_gyo_lpf;
+    math::LowPassFilter2p _gyro_filter;
 
 	/**
 	 * Update our local parameter cache.
@@ -434,7 +441,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_ts_opt_recovery(nullptr),
-    _diff(0.02f, 0.025f) // FOWA filter (dt, noise amplitude)
+    _diff(0.004f, 0.025f), // FOWA filter (dt, noise amplitude)
+    _diff_gyo_lpf(0.004f, 0.0075f),
+    _gyro_filter(250.0f, 100.0f)
+
 
 
 {
@@ -475,8 +485,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_thrust_sp = 0.0f;
 	_att_control.zero();
     _raw_diff = 0.0f;
+    _raw_diff_gyro_lpf = 0.0f;
 
     _foaw_diff = 0.0f; 
+    _rates_lpf = 0.0f;
+    _rates_lpf_prev = 0.0f;
+    _foaw_diff_gyro_lpf = 0.0f;
 	_I.identity();
 	_board_rotation.identity();
 
@@ -1039,14 +1053,18 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 		       _params.rate_ff.emult(_rates_sp);
 
 
+    _rates_lpf = _gyro_filter.apply(rates(0));
     _raw_diff = (rates(0) - _rates_prev(0))/dt;
+    _raw_diff_gyro_lpf = (_rates_lpf - _rates_lpf_prev)/dt; 
 
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
+    _rates_lpf_prev = _rates_lpf;
 
     _diff.set_sample_time(dt);
 
     _foaw_diff = _diff.apply(rates(0));
+    _foaw_diff_gyro_lpf = _diff_gyo_lpf.apply(_rates_lpf);
 
 	/* update integral only if motors are providing enough thrust to be effective */
 	if (_thrust_sp > MIN_TAKEOFF_THRUST) {
@@ -1289,7 +1307,10 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.timestamp = hrt_absolute_time();
                 _controller_status.raw_derivative = _raw_diff;
                 _controller_status.foaw_derivative = _foaw_diff;
-                _controller_status.window_size = _diff.get_last_window_size();
+                _controller_status.rates_lpf = _rates_lpf;
+                _controller_status.raw_derivative_rates_lpf = _raw_diff_gyro_lpf;
+                _controller_status.window_size = _diff_gyo_lpf.get_last_window_size();
+                _controller_status.foaw_gyro_lpf = _foaw_diff_gyro_lpf;
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub != nullptr) {
