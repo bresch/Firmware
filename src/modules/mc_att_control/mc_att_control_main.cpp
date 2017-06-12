@@ -443,7 +443,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_ts_opt_recovery(nullptr),
     _diff(0.004f, 0.025f), // FOWA filter (dt, noise amplitude)
     _diff_gyo_lpf(0.004f, 0.0075f),
-    _gyro_filter(250.0f, 100.0f)
+    _gyro_filter(250.0f, 80.0f)
 
 
 
