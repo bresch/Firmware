@@ -1054,7 +1054,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	derivative(2) = _foaw_yaw.apply(rates(2));
 
 	_att_control = rates_p_scaled.emult(rates_err) +
-		       _rates_int +
+		       _rates_int -
 		       rates_d_scaled.emult(derivative) +
 		       _params.rate_ff.emult(_rates_sp);
 
